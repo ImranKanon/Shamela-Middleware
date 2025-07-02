@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
+// ✅ POST /translate (যেমন করে চলছিল)
 app.post("/translate", async (req, res) => {
   const prompt = req.body.prompt;
   if (!prompt) return res.status(400).json({ error: "Prompt is required." });
@@ -28,8 +29,38 @@ app.post("/translate", async (req, res) => {
     const reply = resp.data.choices[0].message.content;
     res.json({ translation: reply });
   } catch (err) {
-    console.error(err.response?.data || err.message);
-    res.status(500).json({ error: "Translation failed." });
+    console.error("Translation Error:", err.response?.data || err.message);
+    res.status(500).json({
+      error: "Translation failed.",
+      details: err.response?.data || err.message
+    });
+  }
+});
+
+// ➕ নতুন GET /test রুট — Debug / Browser Test এর জন্য
+app.get("/test", async (req, res) => {
+  const text = req.query.text;
+  if (!text) return res.status(400).json({ error: "Missing ?text=..." });
+
+  try {
+    const resp = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: text }]
+      },
+      {
+        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` }
+      }
+    );
+    const reply = resp.data.choices[0].message.content;
+    res.json({ translation: reply });
+  } catch (err) {
+    console.error("Translation Error:", err.response?.data || err.message);
+    res.status(500).json({
+      error: "Translation failed.",
+      details: err.response?.data || err.message
+    });
   }
 });
 
